@@ -3,8 +3,8 @@ package com.coxautodev.graphql.client
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase
 import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.HttpRequestBase
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.HttpClientBuilder
 
@@ -12,7 +12,9 @@ import org.apache.http.impl.client.HttpClientBuilder
 /**
  * @author Andrew Potter
  */
-class GraphQLClient(private val url: String, private val configurer : (HttpEntityEnclosingRequestBase) -> Unit) {
+class GraphQLClient @JvmOverloads constructor(private val url: String, private val configurer: (HttpRequestBase) -> Unit = {}) {
+    constructor(url: String, configurer: GraphQLRequestConfigurer): this(url, { configurer.configure(it) })
+
     private val mapper = ObjectMapper().registerKotlinModule()
     private val client = HttpClientBuilder.create().build()
 
@@ -26,7 +28,7 @@ class GraphQLClient(private val url: String, private val configurer : (HttpEntit
         configurer(post)
 
         val resp = client.execute(post)
-        if(resp.statusLine.statusCode != 200) {
+        if (resp.statusLine.statusCode != 200) {
             throw IllegalStateException("Non-OK status code (${resp.statusLine.statusCode}): ${resp.entity.content.reader().readLines().joinToString("\n")}")
         }
 
@@ -40,11 +42,11 @@ class GraphQLClient(private val url: String, private val configurer : (HttpEntit
     @JvmOverloads
     fun <T: Any> query(text: String, type: Class<T>, vars: Map<String, Any> = mapOf()): T {
         val result = queryForResult(text, type, vars)
-        if(result.errors != null && result.errors.isNotEmpty()) {
+        if (result.errors != null && result.errors.isNotEmpty()) {
             throw GraphQLError(result.errors)
         }
 
-        if(result.data == null) {
+        if (result.data == null) {
             throw IllegalStateException("No errors found but data section was still empty!")
         }
 
@@ -52,6 +54,11 @@ class GraphQLClient(private val url: String, private val configurer : (HttpEntit
     }
 }
 
+interface GraphQLRequestConfigurer {
+    fun configure(client: HttpRequestBase): Unit
+}
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 private data class GraphQLJsonResponse(val data: Map<String, Any>?, val errors: List<Map<String, Any>>?)
+
 data class GraphQLResponse<out T: Any>(val data: T?, val errors: List<Map<String, Any>>?)

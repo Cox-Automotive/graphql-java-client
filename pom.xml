@@ -215,6 +215,7 @@
         </license>
     </licenses>
     <distributionManagement>
+        <!-- Snapshot uploaded with: mvn clean deploy -B -e -Possrh -->
         <snapshotRepository>
             <id>ossrh</id>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
