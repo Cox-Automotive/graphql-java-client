@@ -13,7 +13,6 @@ import org.apache.http.impl.client.HttpClientBuilder
  * @author Andrew Potter
  */
 class GraphQLClient @JvmOverloads constructor(private val url: String, private val configurer: (HttpRequestBase) -> Unit = {}) {
-    constructor(url: String, configurer: GraphQLRequestConfigurer): this(url, { configurer.configure(it) })
 
     private val mapper = ObjectMapper().registerKotlinModule()
     private val client = HttpClientBuilder.create().build()
@@ -52,10 +51,6 @@ class GraphQLClient @JvmOverloads constructor(private val url: String, private v
 
         return result.data
     }
-}
-
-interface GraphQLRequestConfigurer {
-    fun configure(client: HttpRequestBase): Unit
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
